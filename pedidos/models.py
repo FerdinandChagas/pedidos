@@ -12,7 +12,7 @@ class ItemPedido(models.Model):
 class Pedido(models.Model):
     itens=models.ManyToManyField(ItemPedido, default=None)
     data=models.DateField()
-    ##usuario=models.ForeignKey(User, on_delete=models.CASCADE)
+    user=models.ForeignKey(User, on_delete=models.CASCADE, default=1)
     cliente=models.CharField(max_length=120)
     valor_total=models.FloatField()
     status=models.CharField(max_length=20)

@@ -4,9 +4,9 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 
-from pedidos.api.permissions import IsGerente
+from pedidos.api.permissions import IsGerente, IsCliente
 from pedidos.models import ItemPedido, Pedido
-from pedidos.api.serializers import ItemPedidoSerializer, PedidoFinalizadoSerializer, PedidoSerializer, PedidoSerializerList
+from pedidos.api.serializers import ItemPedidoSerializer, PedidoCadastroSerializer, PedidoFinalizadoSerializer, PedidoSerializer, PedidoSerializerList
 
 class ItemPedidoView(ModelViewSet):
     serializer_class = ItemPedidoSerializer
@@ -38,11 +38,21 @@ class ItemPedidoView(ModelViewSet):
 
 class PedidoView(ModelViewSet):
     serializer_class = PedidoSerializer
-    queryset = Pedido.objects.all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsCliente | IsGerente]
+
+    def get_permissions(self):
+        if self.action == 'destroy':
+            return [IsGerente]
+        return super().get_permissions()
+    
+    def get_queryset(self):
+        user = self.request.user
+        if user.groups.filter(name="Cliente"):
+            return Pedido.objects.filter(user=user)
+        return Pedido.objects.all()
 
     def create(self, request, *args, **kwargs):
-        serializer = PedidoSerializer(data=request.data)
+        serializer = PedidoCadastroSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
             novo_pedido = Pedido.objects.create(
                 cliente=serializer.validated_data['cliente'],
@@ -50,6 +60,8 @@ class PedidoView(ModelViewSet):
                 valor_total=0,
                 status="Pendente"
             )
+            novo_pedido.user=request.user
+            novo_pedido.save()
             serializer_resp = PedidoSerializer(novo_pedido)
         return Response({"Info": "Novo pedido criado!", "data":serializer_resp.data}, status=status.HTTP_201_CREATED)
     
@@ -70,9 +82,10 @@ class PedidoView(ModelViewSet):
     
     @action(methods=['get'], detail=True, url_path="finalizado")
     def finalizar_pedido(self, request, *args, **kwargs):
-        pedido = self.get_object()
+        pedido: Pedido = self.get_object()
         for item in pedido.itens.all():
-            pedido.valor_total+=item.valor*item.quantidade
-        pedido.status="Finalizado"
+            pedido.valor_total += item.valor*item.quantidade
+        pedido.status = "Finalizado"
+        pedido.save()
         serializer_resp = PedidoFinalizadoSerializer(pedido)
         return Response({"Info":"Pedido Finalizado!", "data":serializer_resp.data}, status=status.HTTP_200_OK)

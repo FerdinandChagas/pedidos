@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from pedidos.models import ItemPedido, Pedido
+from users.api.serializers import UserSerializer
 
 class ItemPedidoSerializer(serializers.ModelSerializer):
 
@@ -7,21 +8,29 @@ class ItemPedidoSerializer(serializers.ModelSerializer):
         model = ItemPedido
         fields = ["produto", "marca", "valor", "quantidade"]
 
-class PedidoSerializer(serializers.ModelSerializer):
+class PedidoCadastroSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Pedido
         fields = ['id','data','cliente']
 
-class PedidoSerializerList(serializers.ModelSerializer):
+class PedidoSerializer(serializers.ModelSerializer):
+    user = UserSerializer()
 
     class Meta:
         model = Pedido
-        fields = ['id','data','cliente','itens']
+        fields = ['id','data','cliente','user','status']
+
+class PedidoSerializerList(serializers.ModelSerializer):
+    
+
+    class Meta:
+        model = Pedido
+        fields = ['id','data','cliente','itens','user','status']
 
 class PedidoFinalizadoSerializer(serializers.ModelSerializer):
     itens=ItemPedidoSerializer(many=True)
 
     class Meta:
         model = Pedido
-        fields = ['id','data','cliente','itens','valor_total']
+        fields = ['id','data','cliente','itens','valor_total','status']
