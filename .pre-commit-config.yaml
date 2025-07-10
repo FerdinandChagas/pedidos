@@ -1,0 +1,10 @@
+repos:
+  - repo: local
+    hooks:
+      - id: pylint
+        name: Run pylint
+        entry: pylint
+        language: system
+        types: [python]
+        files: ^(pedidos/api/views\.py|pedidos/api/serializers\.py|pedidos/models\.py)$ 
+
